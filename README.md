@@ -9,6 +9,8 @@
   <img src="https://img.shields.io/badge/License-MIT-16A34A" alt="MIT license" />
 </p>
 
+> This is currently a WIP, several things are subject to change.
+
 Native Android companion to [Sift](https://github.com/Alex-Projects-Master/sift)
 (the UK supermarket grocery tracker) and its
 [browser extension](https://github.com/Alex-Projects-Master/sift-extension).
