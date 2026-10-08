@@ -20,8 +20,13 @@ jobs:
           java-version: '17'
           cache: gradle
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Install Android platform + build-tools
+        # Runners already ship cmdline-tools + ANDROID_HOME; install exactly
+        # what app/build.gradle.kts needs (android-actions/setup-android runs
+        # `sdkmanager tools`, a package Google removed — it always fails).
+        run: |
+          yes | sdkmanager --licenses > /dev/null
+          sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
 
       - name: Assemble debug
         run: ./gradlew assembleDebug --stacktrace

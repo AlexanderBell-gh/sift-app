@@ -27,6 +27,21 @@
 Kotlin (no Android APIs) so they run on the local JVM. Compose screens are
 manual-tested until screenshot tests earn their keep.
 
+## Ops CLI
+
+Zero-dep node CLI (`bin/sift-app.mjs`, mirrors `Sift/bin/sift.mjs`).
+Never deploys, never signs release builds.
+
+```bash
+node bin/sift-app.mjs doctor        # toolchain, SDK packages, wrapper, env
+node bin/sift-app.mjs gate          # CI mirror: assemble + test + lint
+node bin/sift-app.mjs sync-assets   # re-copy logos + catalog from Sift repo
+node bin/sift-app.mjs devices       # attached devices/emulators (adb)
+```
+
+`sync-assets` copies from `../Sift` by default (`--sift-dir` overrides).
+Run it when `Sift/public/*.png` or `Sift/src/data/uk-*.json` change.
+
 ## Verify before committing
 
 CI runs: **assemble → test → lint**. Match it locally:
@@ -49,6 +64,7 @@ app/src/main/java/com/sift/app/
   lib/                Pure Kotlin — Stores.kt (11 stores, host map),
                       ShareParser.kt (Phase 0, zero-dep, no network)
   ui/                 Compose — LoginScreen, ShareFlowScreen, HomeScreen, StoreMark
+bin/sift-app.mjs          Ops CLI — doctor, gate, sync-assets, devices
 app/src/main/assets/          uk-*.json catalog (copied from Sift/src/data/)
 app/src/main/res/drawable-nodpi/  11 store logos (copied from Sift/public/*.png)
 app/src/test/             JVM unit tests (ShareParserTest, StoresTest)

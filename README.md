@@ -57,6 +57,9 @@ Without it, the app points at the production Worker.
 | `./gradlew test` | Local JVM unit tests (parser, stores) |
 | `./gradlew connectedCheck` | On-device tests (needs emulator) |
 | `./gradlew lint` | Android lint |
+| `node bin/sift-app.mjs doctor` | Toolchain/SDK/env health check |
+| `node bin/sift-app.mjs gate` | CI mirror (assemble + test + lint) |
+| `node bin/sift-app.mjs sync-assets` | Re-copy logos + catalog from `../Sift` |
 
 ## Project Structure
 
