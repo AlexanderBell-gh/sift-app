@@ -42,6 +42,12 @@ node bin/sift-app.mjs devices       # attached devices/emulators (adb)
 `sync-assets` copies from `../Sift` by default (`--sift-dir` overrides).
 Run it when `Sift/public/*.png` or `Sift/src/data/uk-*.json` change.
 
+`doctor`/`gate` resolve the toolchain without shell exports: java via
+`JAVA_HOME` → `PATH` → `~/tooling/jdk17` → repo `tooling/jdk17`
+(gitignored portable fallback); SDK via `ANDROID_HOME`/`ANDROID_SDK_ROOT`
+→ `local.properties sdk.dir`. On failure `doctor` prints fresh-machine
+re-download notes (repo-local `tooling/` is deleted with the repo).
+
 ## Verify before committing
 
 CI runs: **assemble → test → lint**. Match it locally:

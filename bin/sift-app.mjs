@@ -2,13 +2,69 @@
 // sift-app — zero-dep ops CLI. Never deploys, never signs release builds
 // (CI owns verification; Play signing stays manual).
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, accessSync, constants } from 'node:fs';
+import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const ANDROID_HOME = process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT || '';
+const HOME_TOOLING_JDK = join(homedir(), 'tooling', 'jdk17');
+const REPO_TOOLING_JDK = join(ROOT, 'tooling', 'jdk17');
 const SIFT_DEFAULT = resolve(ROOT, '..', 'Sift');
+
+const FRESH_MACHINE_NOTES = `Fresh-machine re-setup (repo-local tooling/ is deleted with the repo):
+  1. JDK 17 — https://adoptium.net/temurin/releases/?version=17 (Linux x64 .tar.gz),
+     unpack to ~/tooling/jdk17 (or repo tooling/jdk17)
+  2. Android cmdline-tools — https://developer.android.com/studio#command-line-tools-only
+     ("Command line tools only" linux zip), unpack to ~/Android/Sdk/cmdline-tools,
+     rename inner dir to "latest", then:
+       sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+  3. Gradle needs no manual install — gradle/wrapper/gradle-wrapper.jar is committed
+  4. Persist in ~/.bashrc:
+       export JAVA_HOME=~/tooling/jdk17 ANDROID_HOME=~/Android/Sdk
+       export PATH="$JAVA_HOME/bin:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"`;
+
+function isExec(p) {
+  try { accessSync(p, constants.X_OK); return true; }
+  catch { return false; }
+}
+
+/** Resolve a java binary: $JAVA_HOME -> PATH -> ~/tooling/jdk17 -> repo tooling/jdk17. */
+function resolveJava() {
+  const fromHome = process.env.JAVA_HOME ? join(process.env.JAVA_HOME, 'bin', 'java') : null;
+  if (fromHome && isExec(fromHome)) return { bin: fromHome, home: process.env.JAVA_HOME, via: 'JAVA_HOME' };
+  try {
+    runOut('java', ['-version'], { cwd: ROOT }, false);
+    return { bin: 'java', home: null, via: 'PATH' };
+  } catch { /* not on PATH — try portable fallbacks */ }
+  for (const [home, via] of [[HOME_TOOLING_JDK, '~/tooling/jdk17'], [REPO_TOOLING_JDK, 'repo tooling/jdk17']]) {
+    const bin = join(home, 'bin', process.platform === 'win32' ? 'java.exe' : 'java');
+    if (isExec(bin)) return { bin, home, via };
+  }
+  return null;
+}
+
+/** Env for spawning Gradle: fills JAVA_HOME/ANDROID_HOME from resolvers
+ *  so doctor/gate work in shells without exports. */
+function gradleEnv() {
+  const env = { ...process.env };
+  const j = resolveJava();
+  if (j && j.home && !env.JAVA_HOME) env.JAVA_HOME = j.home;
+  const s = resolveSdk();
+  if (s && !env.ANDROID_HOME && !env.ANDROID_SDK_ROOT) env.ANDROID_HOME = s.dir;
+  return env;
+}
+/** Resolve the Android SDK: env -> local.properties sdk.dir. */
+function resolveSdk() {
+  const fromEnv = process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT || '';
+  if (fromEnv && existsSync(fromEnv)) return { dir: fromEnv, via: 'env' };
+  try {
+    const props = readFileSync(join(ROOT, 'local.properties'), 'utf8');
+    const m = props.match(/^\s*sdk\.dir\s*=\s*(.+?)\s*$/m);
+    if (m && existsSync(m[1])) return { dir: m[1], via: 'local.properties sdk.dir' };
+  } catch { /* no local.properties — fall through */ }
+  return null;
+}
 
 const HELP = `Sift App — CLI (never deploys; CI owns verification)
 
@@ -66,27 +122,31 @@ function doctor() {
   });
   check('node', () => process.versions.node);
   check('java >= 17', () => {
-    const out = runOut('java', ['-version'], { cwd: ROOT }, false);
+    const j = resolveJava();
+    if (!j) throw new Error('no JDK found (JAVA_HOME, PATH, ~/tooling/jdk17, repo tooling/jdk17) — see fresh-machine notes below');
+    const out = runOut(j.bin, ['-version'], { cwd: ROOT }, false);
     const m = out.match(/version "(?:1\.)?(\d+)/);
     const major = m ? Number(m[1]) : 0;
     if (!major || major < 17) throw new Error(`need JDK 17+, saw: ${out.split('\n')[0]}`);
-    return out.split('\n')[0].replace(/"/g, '');
+    const repoLocal = j.via === 'repo tooling/jdk17' ? ' — repo-local, re-download if repo is deleted' : '';
+    return `${out.split('\n')[0].replace(/"/g, '')} [via ${j.via}${repoLocal}]`;
   });
   check('Android SDK', () => {
-    if (!ANDROID_HOME) throw new Error('ANDROID_HOME/ANDROID_SDK_ROOT unset and no local.properties sdk.dir');
-    if (!existsSync(ANDROID_HOME)) throw new Error(`missing dir: ${ANDROID_HOME}`);
-    return ANDROID_HOME;
+    const s = resolveSdk();
+    if (!s) throw new Error('no SDK found (ANDROID_HOME/ANDROID_SDK_ROOT, local.properties sdk.dir) — see fresh-machine notes below');
+    return `${s.dir} [via ${s.via}]`;
   });
   check('SDK packages', () => {
-    const sdk = ANDROID_HOME;
+    const s = resolveSdk();
+    if (!s) throw new Error('no SDK dir to check packages against');
     for (const p of ['platforms/android-34', 'build-tools/34.0.0', 'platform-tools']) {
-      if (!existsSync(join(sdk, p))) throw new Error(`missing ${p} — sdkmanager "${p.replace('/', ';')}"`);
+      if (!existsSync(join(s.dir, p))) throw new Error(`missing ${p} — sdkmanager "${p.replace('/', ';')}"`);
     }
     return 'platform-34, build-tools 34.0.0, platform-tools';
   });
   check('gradle wrapper', () => {
     if (!existsSync(join(ROOT, 'gradle/wrapper/gradle-wrapper.jar'))) throw new Error('missing wrapper jar — run `gradle wrapper`');
-    return runOut(gradlew(), ['--version'], { cwd: ROOT }, false).split('\n').find(l => l.startsWith('Gradle ')) || 'present';
+    return runOut(gradlew(), ['--version'], { cwd: ROOT, env: gradleEnv() }, false).split('\n').find(l => l.startsWith('Gradle ')) || 'present';
   });
   check('local.properties', () => {
     if (!existsSync(join(ROOT, 'local.properties'))) return 'absent (prod Worker default; see local.properties.example)';
@@ -99,11 +159,22 @@ function doctor() {
     if (catalog.length === 0) throw new Error('no uk-*.json in assets — run sync-assets');
     return `${LOGOS.length - missingLogos.length} logos, ${catalog.length} catalog files`;
   });
-  if (!ok) process.exit(1);
+  if (!ok) {
+    console.log(`\n${FRESH_MACHINE_NOTES}`);
+    process.exit(1);
+  }
 }
 
 function gate() {
-  run(gradlew(), ['assembleDebug', 'testDebugUnitTest', 'lint', '--stacktrace']);
+  // Self-configure so gate works in shells without exports, as long as a
+  // JDK/SDK exists in one of the known spots (see resolveJava/resolveSdk).
+  const env = gradleEnv();
+  const j = resolveJava();
+  if (!j) fail('no JDK found — run doctor for fresh-machine re-setup notes');
+  const s = resolveSdk();
+  if (!s) fail('no Android SDK found — run doctor for fresh-machine re-setup notes');
+  console.log(`sift-app: gate with java via ${j.via}, SDK via ${s.via}`);
+  run(gradlew(), ['assembleDebug', 'testDebugUnitTest', 'lint', '--stacktrace'], { env });
 }
 
 function syncAssets() {
@@ -124,9 +195,11 @@ function syncAssets() {
 }
 
 function devices() {
-  const adb = ANDROID_HOME ? join(ANDROID_HOME, 'platform-tools', process.platform === 'win32' ? 'adb.exe' : 'adb') : 'adb';
-  if (!existsSync(adb) && ANDROID_HOME) fail(`adb not found in ${ANDROID_HOME}/platform-tools`);
-  run(existsSync(adb) ? adb : 'adb', ['devices', '-l']);
+  const s = resolveSdk();
+  if (!s) fail('no Android SDK found — run doctor for fresh-machine re-setup notes');
+  const adb = join(s.dir, 'platform-tools', process.platform === 'win32' ? 'adb.exe' : 'adb');
+  if (!existsSync(adb)) fail(`adb not found in ${s.dir}/platform-tools`);
+  run(adb, ['devices', '-l']);
 }
 
 switch (cmd) {
