@@ -73,6 +73,8 @@ app/src/main/java/com/sift/app/
 app/src/main/assets/          Bundled uk-*.json catalog (copied from Sift repo)
 app/src/main/res/drawable-nodpi/  Bundled store logos (copied from Sift repo)
 app/src/test/             ShareParserTest, StoresTest
+bin/sift-app.mjs          Ops CLI (doctor, gate, sync-assets, devices)
+tooling/                  Gitignored portable JDK (fallback for doctor/gate)
 ```
 
 ## API

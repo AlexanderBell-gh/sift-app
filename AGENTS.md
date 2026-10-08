@@ -137,19 +137,31 @@ conflict. Share → confirm must stay a 2-tap flow (confirm screen IS the pin).
 ## Session Lifecycle Rules
 
 ### Multi-Doc Conclusion Protocol
-Whenever the user says **"lets finish up and update the docs"**, perform:
+Whenever the user says **"lets finish up and update the docs"**, you MUST perform the following documentation updates before stopping:
 
-1. **Update MEMORY.md:** reverse-chronological entry under `## Session History`.
-   Location: `/home/wsl/Repositories/markdowns/sift-markdowns/app/MEMORY.md`
+1. **Update MEMORY.md:**
+   * Insert a reverse-chronological entry directly under the `## Session History` header.
+   * Location: `/home/wsl/Repositories/markdowns/sift-markdowns/app/MEMORY.md`
    (create `app/` docs dir if absent).
-   Format:
-   `### 📝 [DD-MM-YYYY] @ [UK HH:MM 24-hr] | [Short Session Title]`
-   * **Changes:** [one sentence]. * **Impacted Files:** `[f1]`, `[f2]`.
-   * **Left Off At:** [one sentence].
-2. **Update ARCHITECTURE.md:** reflect exact end-of-session state, ~200 lines.
-   Location: `/home/wsl/Repositories/markdowns/sift-markdowns/app/ARCHITECTURE.md`
-3. **Update README.md** (`/home/wsl/Repositories/sift-app/README.md`) only if
-   features, config keys, or build commands changed.
-4. **Update AGENTS.md** only for sweeping architectural shifts or core stack
-   changes. Keep under ~200 lines.
-5. **Commit Message:** suggest one (`feat:`, `polish:`, etc.).
+
+   ### **Format:**
+      ### 📝 [DD-MM-YYYY] @ [UK HH:MM 24-hr] | [Short Session Title]
+      * **Changes:** [One-sentence summary of what was accomplished].
+      * **Impacted Files:** `[file_1.ext]`, `[file_2.ext]`.
+      * **Left Off At:** [One-sentence summary of outstanding next steps].
+
+2. **Update ARCHITECTURE.md:**
+   * Review the current architectural state, tech stack details, or data flows.
+   * Update any outdated sections to reflect the exact state of the codebase at the end of this session. Keep it under ~200 lines.
+   * Location: `/home/wsl/Repositories/markdowns/sift-markdowns/app/ARCHITECTURE.md`
+
+3. **Update README.md:**
+   * Review `README.md`. If the session introduced new features, configuration keys (`local.properties`), or changed installation/build commands, update those specific sections. Do not alter stable project descriptions unless explicitly relevant.
+   * Location: `/home/wsl/Repositories/sift-app/README.md`
+
+4. **Update AGENTS.md:**
+   * Updates to this file are strictly reserved for critical, sweeping architectural shifts, fundamental changes to the core tech stack, or major global project rules. Do not modify it for routine features, refactors, or bug fixes. Keep it under ~200 lines
+   * Location: `/home/wsl/Repositories/sift-app/AGENTS.md`
+
+5. **Commit Message**
+   * Once docs are upto date suggest a quick commit message with either `feat:`, `polish:` etc
