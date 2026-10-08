@@ -21,12 +21,14 @@ jobs:
           cache: gradle
 
       - name: Install Android platform + build-tools
-        # Runners already ship cmdline-tools + ANDROID_HOME; install exactly
-        # what app/build.gradle.kts needs (android-actions/setup-android runs
-        # `sdkmanager tools`, a package Google removed — it always fails).
+        # Runner images ship cmdline-tools versioned (e.g. cmdline-tools/16.0)
+        # and NOT on PATH — resolve it explicitly. (android-actions/setup-android
+        # runs `sdkmanager tools`, a package Google removed, so it always fails.)
         run: |
-          yes | sdkmanager --licenses > /dev/null
-          sdkmanager "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+          SDKMANAGER="$(ls "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | head -n 1)"
+          [ -x "$SDKMANAGER" ] || { echo "::error::sdkmanager not found under $ANDROID_HOME/cmdline-tools"; exit 1; }
+          yes | "$SDKMANAGER" --licenses > /dev/null
+          "$SDKMANAGER" "platforms;android-34" "build-tools;34.0.0" "platform-tools"
 
       - name: Assemble debug
         run: ./gradlew assembleDebug --stacktrace
