@@ -1,0 +1,7 @@
+<resources>
+    <!-- Window background theme only; all UI is Jetpack Compose Material 3.
+         TODO: branded launcher icon (mipmap) + splash before first release. -->
+    <style name="Theme.Sift" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/white</item>
+    </style>
+</resources>

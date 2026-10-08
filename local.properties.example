@@ -1,0 +1,9 @@
+# Local overrides (gitignored). Copy to local.properties and edit.
+# Dev worker on the Android emulator (host loopback):
+# sift.apiBase=http://10.0.2.2:8787
+# Or a LAN dev server:
+# sift.apiBase=http://192.168.1.10:5173
+# If absent, the build defaults to the production Worker.
+# sift.apiBase=
+# Android SDK location (Android Studio manages this; only needed for CLI builds):
+# sdk.dir=/home/wsl/Android/Sdk
