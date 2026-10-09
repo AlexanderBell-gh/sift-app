@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.sift.app.data.InheritedFacts
 import com.sift.app.data.PinOutcome
 import com.sift.app.data.TrialBlockReason
 import com.sift.app.lib.ParsedShare
@@ -42,6 +43,8 @@ import com.sift.app.lib.STORES
 fun ShareFlowScreen(
     parsed: ParsedShare,
     prefillPrice: String,
+    inherited: InheritedFacts?,
+    resolving: Boolean,
     pinning: Boolean,
     outcome: PinOutcome?,
     onPin: (storeName: String, name: String, price: Double?) -> Unit,
@@ -110,6 +113,33 @@ fun ShareFlowScreen(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth(),
         )
+        when {
+            resolving -> {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "Checking Sift prices…",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            inherited != null && (!inherited.offerDeal.isNullOrBlank() || !inherited.category.isNullOrBlank()) -> {
+                Spacer(Modifier.height(8.dp))
+                if (!inherited.offerDeal.isNullOrBlank()) {
+                    Text(
+                        inherited.offerDeal,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                if (!inherited.category.isNullOrBlank()) {
+                    Text(
+                        inherited.category,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
 
         when (outcome) {
             is PinOutcome.Pinned -> {

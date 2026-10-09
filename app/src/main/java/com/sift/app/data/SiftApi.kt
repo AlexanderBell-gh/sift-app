@@ -16,7 +16,8 @@ interface SiftApi {
     @POST("/api/watchlist")
     suspend fun postWatchlist(@Body body: WatchlistPostBody): Response<WatchlistPostResponse>
 
-    // Phase 1 (worker-side, not yet implemented): uncomment when live.
-    // @POST("/api/import/resolve")
-    // suspend fun resolve(@Body body: ResolveRequest): Response<InheritedFacts>
+    // Phase 1 inheritance: best product-level facts from Sift's own DB
+    // (200 with empty facts on no match, never 404).
+    @POST("/api/import/resolve")
+    suspend fun resolve(@Body body: ResolveRequest): Response<InheritedFacts>
 }

@@ -21,11 +21,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.sift.app.data.CategorySignals
+import com.sift.app.data.InheritedFacts
 import com.sift.app.data.LoginRequest
 import com.sift.app.data.PinOutcome
 import com.sift.app.data.PriceBlock
 import com.sift.app.data.WatchlistResult
 import com.sift.app.data.productIdFor
+import com.sift.app.lib.STORES
 import com.sift.app.lib.parseShareText
 import com.sift.app.ui.HomeScreen
 import com.sift.app.ui.LoginScreen
@@ -82,14 +84,42 @@ class MainActivity : ComponentActivity() {
                                 val parsed = remember(activeShare) { parseShareText(activeShare) }
                                 var pinning by remember { mutableStateOf(false) }
                                 var outcome by remember { mutableStateOf<PinOutcome?>(null) }
+                                var facts by remember(activeShare) { mutableStateOf<InheritedFacts?>(null) }
+                                var resolvedStore by remember(activeShare) { mutableStateOf<String?>(null) }
+                                var resolving by remember(activeShare) { mutableStateOf(false) }
+                                // Single best-effort inheritance lookup on open.
+                                // Null (failure) falls back to the thin typed-price flow.
+                                LaunchedEffect(parsed) {
+                                    outcome = null
+                                    facts = null
+                                    resolvedStore = null
+                                    if (parsed.title.isNotBlank()) {
+                                        resolving = true
+                                        val storeName = STORES.firstOrNull { it.id == parsed.storeId }?.name
+                                            ?: parsed.storeId ?: "Tesco"
+                                        facts = container.watchlistRepository.resolve(storeName, parsed.title)
+                                        resolvedStore = storeName
+                                        resolving = false
+                                    }
+                                }
+                                // Loyalty price is what the user pays — prefer it.
+                                val prefillPrice = remember(facts) {
+                                    (facts?.loyaltyPrice ?: facts?.normalPrice)?.toString() ?: ""
+                                }
                                 ShareFlowScreen(
                                     parsed = parsed,
-                                    prefillPrice = "",
+                                    prefillPrice = prefillPrice,
+                                    inherited = facts,
+                                    resolving = resolving,
                                     pinning = pinning,
                                     outcome = outcome,
                                     onPin = { storeName, name, price ->
                                         scope.launch {
                                             pinning = true
+                                            // Only inherit when pinning at the store the
+                                            // facts were resolved for — never leak
+                                            // cross-store facts into the row.
+                                            val useFacts = facts != null && storeName == resolvedStore
                                             outcome = container.watchlistRepository.pin(
                                                 WatchlistResult(
                                                     id = productIdFor(
@@ -98,8 +128,17 @@ class MainActivity : ComponentActivity() {
                                                     ),
                                                     name = name,
                                                     store = storeName,
-                                                    productUrl = parsed.url ?: "",
+                                                    imageUrl = if (useFacts) facts?.imageUrl ?: "" else "",
+                                                    unit = if (useFacts) facts?.unit else null,
                                                     prices = price?.let { PriceBlock(normal = it) },
+                                                    offerDeal = if (useFacts) facts?.offerDeal else null,
+                                                    offerExpiresAt = if (useFacts) facts?.offerExpiresAt else null,
+                                                    productUrl = if (useFacts && !facts?.productUrl.isNullOrBlank()) {
+                                                        facts?.productUrl ?: ""
+                                                    } else {
+                                                        parsed.url ?: ""
+                                                    },
+                                                    isOnOffer = useFacts && !facts?.offerDeal.isNullOrBlank(),
                                                     categorySignals = CategorySignals(
                                                         title = name,
                                                         store = storeName,

@@ -34,4 +34,19 @@ class WatchlistRepository(private val api: SiftApi) {
             PinOutcome.Failed(e.message ?: "Network error")
         }
     }
+
+    /**
+     * Best-effort inheritance lookup. Returns facts on 2xx, null on
+     * anything else (no match is 200-with-empty-facts, so null means
+     * transport/rate-limit/auth failure). Callers fall back to the thin
+     * typed-price flow — never a retry, never an error banner.
+     */
+    suspend fun resolve(store: String, name: String): InheritedFacts? {
+        return try {
+            val resp = api.resolve(ResolveRequest(store, name))
+            if (resp.isSuccessful) resp.body() else null
+        } catch (e: Exception) {
+            null
+        }
+    }
 }

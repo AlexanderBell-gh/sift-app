@@ -69,6 +69,10 @@ node bin/sift-app.mjs gate
 
 If any fails, the commit will break CI.
 
+**No `python3` in this environment.** It is not installed — never use it
+for verification or one-off checks. Use the node CLI, `rg`/`grep`, or
+`rtk` instead.
+
 ## Repository structure
 
 ```
@@ -138,8 +142,9 @@ rtk git diff                      # unstaged changes
 Base: `BuildConfig.SIFT_API_BASE` (prod Worker; `local.properties`
 `sift.apiBase` overrides locally). No CORS change needed for native.
 Login is username/password JWT first; Google OAuth needs an Android client
-ID — deferred. Future `POST /api/import/resolve` is stubbed in `SiftApi.kt`
-until the worker ships it.
+ID — deferred. `POST /api/import/resolve` is live — the confirm screen
+prefills inherited facts (loyalty-first price, offer, category) with silent
+fallback to the typed-price flow.
 
 ## UI Guidelines
 

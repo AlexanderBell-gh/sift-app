@@ -75,7 +75,7 @@ app/src/main/java/com/sift/app/
   ui/                 Compose screens (Login, ShareFlow, Home, StoreMark)
 app/src/main/assets/          Bundled uk-*.json catalog (copied from Sift repo)
 app/src/main/res/drawable-nodpi/  Bundled store logos (copied from Sift repo)
-app/src/test/             ShareParserTest, StoresTest, CatalogMatcherTest
+app/src/test/             ShareParserTest, StoresTest, CatalogMatcherTest, ResolveRepositoryTest
 bin/sift-app.mjs          Ops CLI (doctor, gate, sync-assets, devices)
 tooling/                  Gitignored portable JDK (fallback for doctor/gate)
 ```
@@ -84,8 +84,8 @@ tooling/                  Gitignored portable JDK (fallback for doctor/gate)
 
 Same Cloudflare Worker as web + extension. Pins go to
 `POST /api/watchlist` (all fields optional — no worker changes needed);
-`POST /api/import/resolve` (inherited facts) is stubbed until the worker
-ships it. Phone pins send `category_signals: {title, brand, store}` only —
+`POST /api/import/resolve` (inherited facts) prefills the confirm screen
+(price, offer, category) with silent fallback to the typed-price flow. Phone pins send `category_signals: {title, brand, store}` only —
 the worker owns the category taxonomy.
 
 ## License
