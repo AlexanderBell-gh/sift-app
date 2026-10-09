@@ -56,7 +56,7 @@ Without it, the app points at the production Worker.
 | Command | What it does |
 |---------|--------------|
 | `node bin/sift-app.mjs assemble` | Debug APK (assembleDebug) |
-| `node bin/sift-app.mjs test` | Local JVM unit tests (parser, stores) |
+| `node bin/sift-app.mjs test` | Local JVM unit tests (parser, stores, matcher) |
 | `node bin/sift-app.mjs lint` | Android lint |
 | `node bin/sift-app.mjs connectedCheck` | On-device tests (needs emulator) |
 | `node bin/sift-app.mjs gate` | CI mirror (assemble + test + lint) |
@@ -70,12 +70,12 @@ Without it, the app points at the production Worker.
 app/src/main/java/com/sift/app/
   MainActivity.kt     Single activity — ACTION_SEND entry, state-based routing
   SiftApp.kt / AppContainer.kt   Application + manual DI
-  data/               Worker contract mirror (Models, SiftApi, AuthStore, repo)
-  lib/                Pure Kotlin (Stores, ShareParser — JVM-tested)
+  data/               Worker contract mirror (Models, SiftApi, AuthStore, repo, CatalogStore)
+  lib/                Pure Kotlin (Stores, ShareParser, CatalogMatcher — JVM-tested)
   ui/                 Compose screens (Login, ShareFlow, Home, StoreMark)
 app/src/main/assets/          Bundled uk-*.json catalog (copied from Sift repo)
 app/src/main/res/drawable-nodpi/  Bundled store logos (copied from Sift repo)
-app/src/test/             ShareParserTest, StoresTest
+app/src/test/             ShareParserTest, StoresTest, CatalogMatcherTest
 bin/sift-app.mjs          Ops CLI (doctor, gate, sync-assets, devices)
 tooling/                  Gitignored portable JDK (fallback for doctor/gate)
 ```

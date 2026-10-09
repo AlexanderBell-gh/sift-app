@@ -22,7 +22,7 @@ Never call `./gradlew` directly — the CLI resolves the toolchain
 
 ```bash
 node bin/sift-app.mjs assemble        # debug APK (assembleDebug)
-node bin/sift-app.mjs test            # local JVM unit tests (parser, stores)
+node bin/sift-app.mjs test            # local JVM unit tests (parser, stores, matcher)
 node bin/sift-app.mjs lint            # Android lint
 node bin/sift-app.mjs connectedCheck  # on-device/emulator tests (needs emulator)
 node bin/sift-app.mjs gate            # CI mirror: assemble + test + lint
@@ -31,9 +31,9 @@ node bin/sift-app.mjs sync-assets     # re-copy logos + catalog from Sift repo
 node bin/sift-app.mjs devices         # attached devices/emulators (adb)
 ```
 
-**No test framework beyond JUnit4.** `ShareParser` and `Stores` are pure
-Kotlin (no Android APIs) so they run on the local JVM. Compose screens are
-manual-tested until screenshot tests earn their keep.
+**No test framework beyond JUnit4.** `ShareParser`, `Stores`, and
+`CatalogMatcher` are pure Kotlin (no Android APIs) so they run on the local
+JVM. Compose screens are manual-tested until screenshot tests earn their keep.
 
 ## Ops CLI
 
@@ -43,6 +43,8 @@ Never deploys, never signs release builds.
 ```bash
 node bin/sift-app.mjs doctor        # toolchain, SDK packages, wrapper, env
 node bin/sift-app.mjs gate          # CI mirror: assemble + test + lint
+node bin/sift-app.mjs assemble/test/lint  # per-step Gradle passthroughs (extra args forwarded)
+node bin/sift-app.mjs connectedCheck      # on-device tests (needs emulator)
 node bin/sift-app.mjs sync-assets   # re-copy logos + catalog from Sift repo
 node bin/sift-app.mjs devices       # attached devices/emulators (adb)
 ```
@@ -50,7 +52,8 @@ node bin/sift-app.mjs devices       # attached devices/emulators (adb)
 `sync-assets` copies from `../Sift` by default (`--sift-dir` overrides).
 Run it when `Sift/public/*.png` or `Sift/src/data/uk-*.json` change.
 
-`doctor`/`gate` resolve the toolchain without shell exports: java via
+`doctor` and the Gradle-backed commands (`gate`, `assemble`, `test`,
+`lint`, `connectedCheck`) resolve the toolchain without shell exports: java via
 `JAVA_HOME` → `PATH` → `~/tooling/jdk17` → repo `tooling/jdk17`
 (gitignored portable fallback); SDK via `ANDROID_HOME`/`ANDROID_SDK_ROOT`
 → `local.properties sdk.dir`. On failure `doctor` prints fresh-machine
@@ -74,14 +77,17 @@ app/src/main/java/com/sift/app/
   SiftApp.kt          Application — owns the AppContainer
   AppContainer.kt     Manual DI — OkHttp, Retrofit, AuthStore, repositories
   data/               Worker contract mirror — Models.kt, SiftApi.kt,
-                      AuthStore.kt, WatchlistRepository.kt
+                      AuthStore.kt, WatchlistRepository.kt, CatalogStore.kt
+                      (bundled uk-*.json loader, unread until Phase 3 UI)
   lib/                Pure Kotlin — Stores.kt (11 stores, host map),
-                      ShareParser.kt (Phase 0, zero-dep, no network)
+                      ShareParser.kt (Phase 0, zero-dep, no network),
+                      CatalogMatcher.kt (Phase 2 token-overlap top-3, no network)
   ui/                 Compose — LoginScreen, ShareFlowScreen, HomeScreen, StoreMark
-bin/sift-app.mjs          Ops CLI — doctor, gate, sync-assets, devices
+bin/sift-app.mjs          Ops CLI — doctor, gate, assemble, test, lint,
+                      connectedCheck, sync-assets, devices
 app/src/main/assets/          uk-*.json catalog (copied from Sift/src/data/)
 app/src/main/res/drawable-nodpi/  11 store logos (copied from Sift/public/*.png)
-app/src/test/             JVM unit tests (ShareParserTest, StoresTest)
+app/src/test/             JVM unit tests (ShareParserTest, StoresTest, CatalogMatcherTest)
 ```
 
 - App entry: `SiftApp` → `MainActivity` (login → share/confirm → home).
