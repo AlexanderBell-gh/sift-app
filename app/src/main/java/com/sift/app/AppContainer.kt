@@ -2,6 +2,7 @@ package com.sift.app
 
 import android.content.Context
 import com.sift.app.data.AuthStore
+import com.sift.app.data.CatalogStore
 import com.sift.app.data.SiftApi
 import com.sift.app.data.WatchlistRepository
 import kotlinx.serialization.json.Json
@@ -59,4 +60,8 @@ class AppContainer(context: Context, val apiBase: String) {
         .create(SiftApi::class.java)
 
     val watchlistRepository = WatchlistRepository(api)
+
+    // Phase 2 catalog (bundled uk-*.json). Nothing reads it yet —
+    // confirm-screen suggestions land in Phase 3.
+    val catalogStore = CatalogStore(context.applicationContext)
 }
