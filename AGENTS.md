@@ -16,11 +16,19 @@
 
 ## Commands
 
+All commands run via the ops CLI (`node bin/sift-app.mjs <cmd>`).
+Never call `./gradlew` directly — the CLI resolves the toolchain
+(JDK/SDK) and forwards extra args to Gradle.
+
 ```bash
-./gradlew assembleDebug   # debug APK
-./gradlew test            # local JVM unit tests (parser, stores)
-./gradlew connectedCheck   # on-device/emulator tests (needs emulator)
-./gradlew lint            # Android lint
+node bin/sift-app.mjs assemble        # debug APK (assembleDebug)
+node bin/sift-app.mjs test            # local JVM unit tests (parser, stores)
+node bin/sift-app.mjs lint            # Android lint
+node bin/sift-app.mjs connectedCheck  # on-device/emulator tests (needs emulator)
+node bin/sift-app.mjs gate            # CI mirror: assemble + test + lint
+node bin/sift-app.mjs doctor          # toolchain, SDK packages, wrapper, env
+node bin/sift-app.mjs sync-assets     # re-copy logos + catalog from Sift repo
+node bin/sift-app.mjs devices         # attached devices/emulators (adb)
 ```
 
 **No test framework beyond JUnit4.** `ShareParser` and `Stores` are pure
@@ -53,7 +61,7 @@ re-download notes (repo-local `tooling/` is deleted with the repo).
 CI runs: **assemble → test → lint**. Match it locally:
 
 ```bash
-./gradlew assembleDebug test lint
+node bin/sift-app.mjs gate
 ```
 
 If any fails, the commit will break CI.

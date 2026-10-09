@@ -68,10 +68,14 @@ function resolveSdk() {
 
 const HELP = `Sift App — CLI (never deploys; CI owns verification)
 
-Usage: node bin/sift-app.mjs <command> [flags]
+Usage: node bin/sift-app.mjs <command> [args]
 
   doctor                    toolchain, SDK packages, wrapper, env
-  gate                      CI mirror: assembleDebug + unit tests + lint
+  gate                      CI mirror: assemble + test + lint
+  assemble [args]           ./gradlew assembleDebug (extra args forwarded)
+  test [args]               ./gradlew testDebugUnitTest (extra args forwarded)
+  lint [args]               ./gradlew lint (extra args forwarded)
+  connectedCheck [args]     ./gradlew connectedCheck, needs emulator (extra args forwarded)
   sync-assets [--sift-dir <path>]   re-copy logos + catalog JSON from Sift repo
   devices                   list attached devices/emulators (adb)
 
@@ -165,16 +169,31 @@ function doctor() {
   }
 }
 
-function gate() {
-  // Self-configure so gate works in shells without exports, as long as a
+/** Shared Gradle runner: resolves toolchain/SDK so subcommands work in
+ *  shells without exports. Forwards extra CLI args (bare `--` stripped). */
+function gradleTasks(tasks, extraArgs = []) {
+  // Self-configure so commands work in shells without exports, as long as a
   // JDK/SDK exists in one of the known spots (see resolveJava/resolveSdk).
   const env = gradleEnv();
   const j = resolveJava();
   if (!j) fail('no JDK found — run doctor for fresh-machine re-setup notes');
   const s = resolveSdk();
   if (!s) fail('no Android SDK found — run doctor for fresh-machine re-setup notes');
-  console.log(`sift-app: gate with java via ${j.via}, SDK via ${s.via}`);
-  run(gradlew(), ['assembleDebug', 'testDebugUnitTest', 'lint', '--stacktrace'], { env });
+  const extra = extraArgs.filter(a => a !== '--');
+  const args = [...tasks];
+  if (!extra.includes('--stacktrace')) args.push('--stacktrace');
+  args.push(...extra);
+  console.log(`sift-app: gradle ${tasks.join(' ')} (java via ${j.via}, SDK via ${s.via})`);
+  run(gradlew(), args, { env });
+}
+
+function assemble(extraArgs = []) { gradleTasks(['assembleDebug'], extraArgs); }
+function unitTest(extraArgs = []) { gradleTasks(['testDebugUnitTest'], extraArgs); }
+function lint(extraArgs = []) { gradleTasks(['lint'], extraArgs); }
+function connectedCheck(extraArgs = []) { gradleTasks(['connectedCheck'], extraArgs); }
+
+function gate(extraArgs = []) {
+  gradleTasks(['assembleDebug', 'testDebugUnitTest', 'lint'], extraArgs);
 }
 
 function syncAssets() {
@@ -204,7 +223,11 @@ function devices() {
 
 switch (cmd) {
   case 'doctor': doctor(); break;
-  case 'gate': gate(); break;
+  case 'gate': gate(args); break;
+  case 'assemble': assemble(args); break;
+  case 'test': unitTest(args); break;
+  case 'lint': lint(args); break;
+  case 'connectedCheck': connectedCheck(args); break;
   case 'sync-assets': syncAssets(); break;
   case 'devices': devices(); break;
   default:

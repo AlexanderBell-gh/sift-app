@@ -38,8 +38,8 @@ Prerequisites: Android Studio (Hedgehog+), JDK 17.
 
 ```bash
 # Clone, open in Android Studio, run on emulator or device.
-./gradlew assembleDebug
-./gradlew test
+node bin/sift-app.mjs assemble
+node bin/sift-app.mjs test
 ```
 
 Local API override (gitignored — see `local.properties.example`):
@@ -55,13 +55,14 @@ Without it, the app points at the production Worker.
 
 | Command | What it does |
 |---------|--------------|
-| `./gradlew assembleDebug` | Debug APK |
-| `./gradlew test` | Local JVM unit tests (parser, stores) |
-| `./gradlew connectedCheck` | On-device tests (needs emulator) |
-| `./gradlew lint` | Android lint |
-| `node bin/sift-app.mjs doctor` | Toolchain/SDK/env health check |
+| `node bin/sift-app.mjs assemble` | Debug APK (assembleDebug) |
+| `node bin/sift-app.mjs test` | Local JVM unit tests (parser, stores) |
+| `node bin/sift-app.mjs lint` | Android lint |
+| `node bin/sift-app.mjs connectedCheck` | On-device tests (needs emulator) |
 | `node bin/sift-app.mjs gate` | CI mirror (assemble + test + lint) |
+| `node bin/sift-app.mjs doctor` | Toolchain/SDK/env health check |
 | `node bin/sift-app.mjs sync-assets` | Re-copy logos + catalog from `../Sift` |
+| `node bin/sift-app.mjs devices` | Attached devices/emulators (adb) |
 
 ## Project Structure
 
